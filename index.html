@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-title" content="Morning Squares">
+<title>Morning Squares</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>:root{color-scheme:light;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>
+/* Layout: one narrow phone column. The giant countdown is the only loud element; the squares grid is the reward and carries the color. */
+:root {
+  --bg: #F2F4F7;
+  --surface: #FFFFFF;
+  --fg: #121A2B;
+  --muted: #5B6577;
+  --line: #D9DEE7;
+  --empty: #E4E8EF;
+  --accent: #1E5AA8;
+  --accent-fg: #FFFFFF;
+  --green: #2F9E5B;
+  --red: #D64545;
+  --amber: #C77D0A;
+  --f-display: 'Big Shoulders Display', 'Arial Narrow', Impact, sans-serif;
+  --f-body: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1320; --surface: #151D2E; --fg: #E7ECF5; --muted: #93A0B6; --line: #26314A; --empty: #1D2740;
+    --accent: #6DB0F2; --accent-fg: #0D1320; --green: #3DBB74; --red: #EF6A6A; --amber: #E3A33A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1320; --surface: #151D2E; --fg: #E7ECF5; --muted: #93A0B6; --line: #26314A; --empty: #1D2740;
+  --accent: #6DB0F2; --accent-fg: #0D1320; --green: #3DBB74; --red: #EF6A6A; --amber: #E3A33A;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.45 var(--f-body);
+  padding-inline: 16px;
+  padding-block: 8px 56px;
+  -webkit-text-size-adjust: 100%;
+}
+main { max-width: 30rem; margin-inline: auto; display: flex; flex-direction: column; gap: 28px; }
+h1, h2, p, ol, ul { margin: 0; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.top { display: flex; justify-content: space-between; align-items: center; min-height: 48px; }
+.brand { font: 800 20px/1 var(--f-display); letter-spacing: .08em; text-transform: uppercase; }
+.link { background: none; border: 0; color: var(--accent); font-weight: 600; font-size: 15px; min-height: 44px; padding: 0 4px; }
+.link:disabled { color: var(--muted); }
+
+.eyebrow { font: 600 12px/1 var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.sub { color: var(--muted); }
+.hero { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.clock { font: 800 clamp(88px, 30vw, 132px)/.9 var(--f-display); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.ampm { font-size: .3em; margin-left: .15em; letter-spacing: .04em; color: var(--muted); }
+.headline { font: 800 clamp(56px, 19vw, 88px)/.95 var(--f-display); text-wrap: balance; }
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; width: 100%; }
+.late { color: var(--red); font-weight: 600; }
+
+.btn {
+  width: 100%; min-height: 56px; padding: 14px 18px; border-radius: 14px; border: 1px solid transparent;
+  font-weight: 700; font-size: 18px; background: var(--accent); color: var(--accent-fg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+}
+.btn:active { transform: scale(.99); }
+.btn.big { min-height: 72px; font-size: 22px; }
+.btn .next { font-size: 14px; font-weight: 500; opacity: .85; }
+.btn.ghost { background: transparent; color: var(--fg); border-color: var(--line); width: auto; flex: 1; font-size: 16px; min-height: 48px; }
+.btn.danger { color: var(--red); border-color: var(--red); width: 100%; flex: none; }
+
+/* running */
+.run { display: flex; flex-direction: column; gap: 22px; }
+.runmeta { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.runmeta b { color: var(--fg); font-weight: 600; }
+.now-name { font: 800 clamp(34px, 11vw, 48px)/1 var(--f-display); text-wrap: balance; }
+.ringwrap { position: relative; width: min(78vw, 300px); margin-inline: auto; }
+.ring { display: block; width: 100%; height: auto; }
+.track { fill: none; stroke: var(--line); stroke-width: 10; }
+.arc { fill: none; stroke: var(--accent); stroke-width: 10; stroke-dasharray: 553; transform: rotate(-90deg); transform-origin: 100px 100px; transition: stroke-dashoffset .3s linear, stroke .3s; }
+.arc.warn { stroke: var(--amber); }
+.ringtext { position: absolute; inset: 0; display: grid; place-items: center; }
+.count { font: 800 clamp(64px, 22vw, 92px)/1 var(--f-display); font-variant-numeric: tabular-nums; }
+.practice { font-size: 14px; color: var(--muted); }
+
+.tl { list-style: none; padding: 0; display: flex; flex-direction: column; }
+.tl li { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding-block: 12px; border-top: 1px solid var(--line); }
+.tl li.now { font-weight: 700; }
+.tl .meta { color: var(--muted); font-size: 14px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.mk { width: 16px; height: 16px; border-radius: 3px; background: var(--empty); }
+.mk.done { background: var(--green); }
+.mk.missed { background: var(--red); }
+.mk.now { background: transparent; border: 3px solid var(--accent); }
+
+/* result */
+.bigsq { width: 88px; height: 88px; border-radius: 10px; background: var(--empty); }
+.bigsq.green { background: var(--green); }
+.bigsq.red { background: var(--red); }
+.bigsq.off { background: transparent; border: 3px dashed var(--line); }
+
+/* squares */
+.squares { display: flex; flex-direction: column; gap: 12px; }
+.shead { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+h2 { font: 700 22px/1 var(--f-display); letter-spacing: .08em; text-transform: uppercase; }
+.stats { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.stats b { color: var(--fg); }
+.dow, .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.dow { text-align: center; font-size: 12px; color: var(--muted); }
+.sq { aspect-ratio: 1; border-radius: 4px; background: var(--empty); max-width: 100%; }
+.sq.green { background: var(--green); }
+.sq.red { background: var(--red); }
+.sq.off { background: transparent; border: 2px dashed var(--line); }
+.sq.future { opacity: .4; }
+.sq.today { outline: 2px solid var(--fg); outline-offset: 2px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; color: var(--muted); font-size: 13px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--empty); }
+.legend i.green { background: var(--green); }
+.legend i.red { background: var(--red); }
+.legend i.off { background: transparent; border: 2px dashed var(--line); }
+
+/* edit */
+.edit { display: flex; flex-direction: column; gap: 20px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field > label, .field > .lbl { font-weight: 600; }
+input[type=text], input[type=time], input[type=number] {
+  font: inherit; font-size: 16px; color: var(--fg); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-height: 48px; width: 100%; min-width: 0;
+}
+.hint { color: var(--muted); font-size: 14px; }
+.notice { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; color: var(--muted); font-size: 14px; }
+.chips { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.chip { min-height: 48px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-size: 14px; font-weight: 600; padding: 0; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.tasks { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.trow { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.trow .tn { grid-column: 1 / -1; }
+.mins { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.mins input { width: 84px; }
+.tb { display: flex; gap: 6px; justify-self: end; }
+.tb button { width: 44px; min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: transparent; font-size: 16px; padding: 0; }
+.tb button:disabled { opacity: .35; }
+.check { display: flex; gap: 12px; align-items: flex-start; }
+.check input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--accent); flex: none; }
+details.how { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px 14px; }
+details.how summary { min-height: 48px; display: flex; align-items: center; font-weight: 600; cursor: pointer; }
+details.how ol { padding-left: 20px; display: flex; flex-direction: column; gap: 8px; margin-block: 4px 12px; }
+
+@media (prefers-reduced-motion: reduce) { .arc, .btn { transition: none; } }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+(function () {
+  'use strict';
+
+  var KEY = 'morning-squares-v1';
+  var GRACE = 5 * 60000;
+  var PRACTICE_SCALE = 15;
+  var C = 553;
+  var DAYNAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+  var app = document.getElementById('app');
+  var view = 'today';
+  var eraseArmed = false;
+  var lastKey = '';
+
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  var uid = function () { return Math.random().toString(36).slice(2, 8); };
+  var dkey = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+  var keyToDate = function (k) { var p = k.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); };
+  var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var clockStr = function (ts) { return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); };
+  var setText = function (id, txt) { var el = document.getElementById(id); if (el && el.textContent !== txt) el.textContent = txt; };
+
+  function clockParts(ts) {
+    var s = clockStr(ts);
+    var m = s.match(/^(.*?)\s*([AaPp]\.?[Mm]\.?)$/);
+    return m ? esc(m[1]) + '<span class="ampm">' + esc(m[2]) + '</span>' : esc(s);
+  }
+  function fmt(ms) {
+    var s = Math.ceil(ms / 1000);
+    return pad(Math.floor(s / 60)) + ':' + pad(s % 60);
+  }
+  function human(ms) {
+    var m = Math.max(0, Math.ceil(ms / 60000));
+    if (m >= 60) return Math.floor(m / 60) + ' h ' + (m % 60) + ' min';
+    return m + ' min';
+  }
+
+  /* ---------- state ---------- */
+  var storageOK = true;
+  try { localStorage.setItem(KEY + '-t', '1'); localStorage.removeItem(KEY + '-t'); } catch (e) { storageOK = false; }
+
+  function totalMs(tasks) { return tasks.reduce(function (a, t) { return a + t.min * 60000; }, 0); }
+  function alarmAt(S, d) {
+    var p = S.alarm.split(':').map(Number);
+    var x = new Date(d); x.setHours(p[0], p[1], 0, 0); return x;
+  }
+  function computeStart(S, now) {
+    var end = alarmAt(S, now).getTime() + totalMs(S.tasks);
+    var d = now.getTime() < end ? now : new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    return dkey(d);
+  }
+  function fresh() {
+    var S = {
+      alarm: '07:00',
+      days: [0, 1, 2, 3, 4, 5, 6],
+      tasks: [
+        { id: uid(), name: 'Get out of bed', min: 3 },
+        { id: uid(), name: 'Water and meds', min: 3 },
+        { id: uid(), name: 'Wash up and brush teeth', min: 10 },
+        { id: uid(), name: 'Get dressed', min: 10 },
+        { id: uid(), name: 'Eat breakfast', min: 15 },
+        { id: uid(), name: 'Pack bag and shoes on', min: 7 }
+      ],
+      customized: false, sound: true, history: {}, run: null, startedOn: null
+    };
+    S.startedOn = computeStart(S, new Date());
+    return S;
+  }
+  function valid(o) {
+    return !!(o && typeof o === 'object' && Array.isArray(o.tasks) && o.tasks.length &&
+      typeof o.alarm === 'string' && Array.isArray(o.days) && o.history && typeof o.history === 'object');
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) { var o = JSON.parse(raw); if (valid(o)) return o; }
+    } catch (e) {}
+    return null;
+  }
+  var S = load() || fresh();
+
+  /* Saving: this browser first, then a private store in the viewer's account when the page can reach one. */
+  var ref = null, writing = false, dirty = false, timer = null, synced = false, syncState = 'pending';
+  function persistLocal() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function syncText() {
+    if (syncState === 'ok') return ref ? 'Saved to your Claude account.' : 'Saved on this device.';
+    if (syncState === 'saving') return 'Saving…';
+    if (syncState === 'pending') return 'Loading your saved routine…';
+    if (!storageOK && !ref) return 'Not saving. This browser blocks storage.';
+    return syncState === 'error' ? 'Could not reach your account. Saved on this device only. Retrying.' : 'Saved on this device only.';
+  }
+  function setSync(s) { syncState = s; setText('sync', syncText()); }
+  function payload() {
+    var o = JSON.parse(JSON.stringify(S));
+    var cutoff = dkey(new Date(Date.now() - 14 * 86400000));
+    Object.keys(o.history).forEach(function (k) { if (k < cutoff && o.history[k].tasks) delete o.history[k].tasks; });
+    return o;
+  }
+  function save() {
+    S.updatedAt = Date.now();
+    persistLocal();
+    if (ref) { dirty = true; clearTimeout(timer); timer = setTimeout(flush, 500); setSync('saving'); }
+  }
+  async function flush() {
+    if (writing || !ref || !dirty) return;
+    writing = true; dirty = false;
+    var ok = true;
+    try { await ref.set(payload()); } catch (e) { ok = false; }
+    writing = false;
+    if (!ok) { dirty = true; setSync('error'); clearTimeout(timer); timer = setTimeout(flush, 15000); return; }
+    if (dirty) { clearTimeout(timer); timer = setTimeout(flush, 300); setSync('saving'); } else setSync('ok');
+  }
+  async function pull(first) {
+    if (!ref || writing || dirty) return;
+    var snap = await ref.get();
+    var r = snap.exists ? snap.data() : null;
+    if (valid(r)) {
+      if (!S.updatedAt || (r.updatedAt || 0) > S.updatedAt) { S = JSON.parse(JSON.stringify(r)); persistLocal(); lastKey = ''; }
+      else if ((r.updatedAt || 0) < S.updatedAt) { dirty = true; flush(); }
+    } else if (first) {
+      S.updatedAt = S.updatedAt || Date.now(); persistLocal(); dirty = true; flush();
+    }
+  }
+  async function initSync() {
+    try {
+      var cl = window.claude;
+      var db = cl && cl.use ? await cl.use('db') : null;
+      var user = cl && cl.use ? await cl.use('user') : null;
+      var id = user ? await user.id() : null;
+      if (db && id) {
+        ref = db.doc('data/users/' + id + '/state');
+        await pull(true);
+        if (syncState === 'pending') setSync(dirty || writing ? 'saving' : 'ok');
+      } else setSync('local');
+    } catch (e) { setSync('error'); }
+    synced = true;
+    if (settle(Date.now())) save();
+    if (closeOut(new Date())) save();
+    lastKey = '';
+  }
+
+  function isScheduled(d) { return S.days.indexOf(d.getDay()) !== -1 && dkey(d) >= S.startedOn; }
+
+  /* ---------- sound, vibration, wake lock ---------- */
+  var ac = null, wl = null;
+  function unlockAudio() {
+    try {
+      if (!ac) { var AC = window.AudioContext || window.webkitAudioContext; if (AC) ac = new AC(); }
+      if (ac && ac.state === 'suspended') ac.resume();
+    } catch (e) {}
+  }
+  function beep(freq, start, dur, vol) {
+    if (!ac) return;
+    var o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + start;
+    o.type = 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + 0.05);
+  }
+  function cue(kind) {
+    try { if (navigator.vibrate) navigator.vibrate(kind === 'miss' ? [200, 100, 200] : 60); } catch (e) {}
+    if (!S.sound) return;
+    try {
+      unlockAudio();
+      if (kind === 'start') { beep(523, 0, .18, .2); beep(784, .2, .3, .2); }
+      else if (kind === 'done') { beep(659, 0, .12, .18); beep(880, .14, .2, .18); }
+      else if (kind === 'warn') { beep(440, 0, .15, .2); beep(440, .25, .15, .2); }
+      else if (kind === 'miss') { beep(330, 0, .3, .22); beep(262, .32, .4, .22); }
+    } catch (e) {}
+  }
+  function wake() {
+    try { if ('wakeLock' in navigator) navigator.wakeLock.request('screen').then(function (l) { wl = l; }, function () {}); } catch (e) {}
+  }
+  function unwake() { try { if (wl) { wl.release(); wl = null; } } catch (e) {} }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') {
+      if (S.run && !S.run.finished) wake();
+      if (synced && ref) pull(false).catch(function () {});
+    } else if (dirty) flush();
+  });
+
+  /* ---------- run logic ---------- */
+  function warnAt(task) { return Math.min(60000, task.ms * 0.2); }
+
+  function startRun(practice) {
+    var now = Date.now();
+    var a = alarmAt(S, new Date(now)).getTime();
+    var scale = practice ? PRACTICE_SCALE : 1;
+    S.run = {
+      date: dkey(new Date(now)), practice: practice, scale: scale,
+      tasks: S.tasks.map(function (t, i) { return { name: t.name.trim() || ('Task ' + (i + 1)), min: t.min, ms: t.min * 60000 / scale }; }),
+      idx: 0, taskStart: now, results: [], lateStart: !practice && (now - a > GRACE),
+      finished: false, warnIdx: -1
+    };
+    unlockAudio(); cue('start'); wake(); save(); view = 'today'; render();
+  }
+
+  function finishRun(r) {
+    var missed = r.results.filter(function (x) { return x.status === 'missed'; }).length;
+    var ok = !r.lateStart && missed === 0;
+    var parts = [];
+    if (r.lateStart) parts.push('Started more than 5 minutes after the alarm.');
+    if (missed) parts.push(missed + ' of ' + r.tasks.length + ' timers ran out.');
+    if (ok) parts.push('Every timer beaten.');
+    var summary = {
+      ok: ok, reason: parts.join(' '),
+      tasks: r.tasks.map(function (t, i) { return { name: t.name, status: r.results[i].status }; })
+    };
+    unwake();
+    if (r.practice) { r.summary = summary; }
+    else {
+      S.history[r.date] = { result: ok ? 'green' : 'red', reason: summary.reason, tasks: summary.tasks };
+      S.run = null;
+    }
+  }
+
+  function nextTask(r, t) {
+    r.idx++;
+    if (r.idx >= r.tasks.length) { r.finished = true; finishRun(r); }
+    else { r.taskStart = t; r.warnIdx = -1; }
+  }
+
+  function settle(now) {
+    var r = S.run;
+    if (!r || r.finished) return false;
+    var changed = false;
+    while (!r.finished && now >= r.taskStart + r.tasks[r.idx].ms) {
+      var end = r.taskStart + r.tasks[r.idx].ms;
+      r.results.push({ status: 'missed', start: r.taskStart, end: end });
+      nextTask(r, end);
+      changed = true;
+    }
+    if (changed) cue('miss');
+    return changed;
+  }
+
+  function doneTask() {
+    var now = Date.now();
+    settle(now);
+    var r = S.run;
+    if (!r || r.finished) { save(); render(); return; }
+    r.results.push({ status: 'done', start: r.taskStart, end: now });
+    nextTask(r, now);
+    cue('done'); save(); render();
+  }
+
+  function closeOut(now) {
+    var changed = false;
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var todayKey = dkey(today);
+    for (var d = keyToDate(S.startedOn); d <= today; d.setDate(d.getDate() + 1)) {
+      var k = dkey(d);
+      if (S.history[k]) continue;
+      if (S.days.indexOf(d.getDay()) === -1) continue;
+      if (S.run && !S.run.finished && !S.run.practice && S.run.date === k) continue;
+      var endTs = alarmAt(S, d).getTime() + totalMs(S.tasks);
+      if (k !== todayKey || now.getTime() >= endTs) {
+        S.history[k] = { result: 'red', reason: 'No run.' };
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
+  function phase(now) {
+    var r = S.run;
+    if (r && !r.finished) return 'running';
+    if (r && r.finished) return 'practiceDone';
+    if (S.history[dkey(now)]) return 'done';
+    if (!isScheduled(now)) return 'off';
+    var a = alarmAt(S, now).getTime(), t = now.getTime();
+    if (t < a) return 'before';
+    if (t < a + totalMs(S.tasks)) return 'ready';
+    return 'missed';
+  }
+
+  function nextAlarm(now) {
+    for (var i = 0; i < 8; i++) {
+      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+      var a = alarmAt(S, d);
+      if (a.getTime() > now.getTime() && S.days.indexOf(d.getDay()) !== -1 && dkey(d) >= S.startedOn && !S.history[dkey(d)]) {
+        return (i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : DAYNAMES[d.getDay()]) + ' ' + clockStr(a.getTime());
+      }
+    }
+    return 'none set';
+  }
+
+  function streak(now) {
+    var s = 0;
+    var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    for (var i = 0; i < 800; i++) {
+      var k = dkey(d), h = S.history[k];
+      if (h) {
+        if (h.result === 'green') s++;
+        else if (h.result === 'red') break;
+      } else if (i > 0 && k >= S.startedOn && S.days.indexOf(d.getDay()) !== -1) break;
+      d.setDate(d.getDate() - 1);
+      if (dkey(d) < S.startedOn) break;
+    }
+    return s;
+  }
+
+  /* ---------- views ---------- */
+  function squaresHTML(now) {
+    var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var weeks = 5;
+    var start = new Date(today); start.setDate(start.getDate() - today.getDay() - 7 * (weeks - 1));
+    var cells = '';
+    for (var i = 0; i < weeks * 7; i++) {
+      var d = new Date(start); d.setDate(start.getDate() + i);
+      var k = dkey(d), h = S.history[k];
+      var cls = 'sq';
+      var label = d.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+      if (h) {
+        cls += h.result === 'green' ? ' green' : h.result === 'red' ? ' red' : ' off';
+        label += h.result === 'green' ? ': on time' : h.result === 'red' ? ': missed' : ': day off';
+      } else label += ': no result';
+      if (d > today) cls += ' future';
+      if (k === dkey(today)) cls += ' today';
+      cells += '<div class="' + cls + '" role="img" aria-label="' + esc(label) + '"></div>';
+    }
+    var g = 0, r = 0;
+    Object.keys(S.history).forEach(function (k) { if (S.history[k].result === 'green') g++; else if (S.history[k].result === 'red') r++; });
+    return '<section class="squares"><div class="shead"><h2>Squares</h2><p class="stats">Streak <b>' + streak(now) + '</b> · Green <b>' + g + '</b> · Red <b>' + r + '</b></p></div>' +
+      '<div class="dow">' + DOW.map(function (c) { return '<span>' + c + '</span>'; }).join('') + '</div>' +
+      '<div class="grid">' + cells + '</div>' +
+      '<p class="legend"><span><i class="green"></i>On time</span><span><i class="red"></i>Missed</span><span><i class="off"></i>Day off</span></p></section>';
+  }
+
+  function taskList(items) {
+    return '<ol class="tl">' + items.map(function (it) {
+      return '<li class="' + (it.now ? 'now' : '') + '"><span class="mk ' + it.mk + '"></span><span>' + esc(it.name) + '</span><span class="meta">' + esc(it.meta) + '</span></li>';
+    }).join('') + '</ol>';
+  }
+
+  function resultTasks(tasks) {
+    return taskList(tasks.map(function (t) { return { name: t.name, mk: t.status, meta: t.status === 'done' ? 'In time' : 'Ran out' }; }));
+  }
+
+  function runHTML(now) {
+    var r = S.run, t = now.getTime();
+    var task = r.tasks[r.idx];
+    var rem = Math.max(0, r.taskStart + task.ms - t);
+    var off = C * (1 - rem / task.ms);
+    var endTs = r.taskStart + r.tasks.slice(r.idx).reduce(function (a, x) { return a + x.ms; }, 0);
+    var nextName = r.tasks[r.idx + 1] ? r.tasks[r.idx + 1].name : null;
+    var items = r.tasks.map(function (x, i) {
+      if (i < r.idx) { var st = r.results[i].status; return { name: x.name, mk: st, meta: st === 'done' ? 'In time' : 'Ran out' }; }
+      if (i === r.idx) return { name: x.name, mk: 'now', now: true, meta: 'Now' };
+      return { name: x.name, mk: '', meta: x.min + ' min' };
+    });
+    return '<section class="run">' +
+      '<div class="runmeta"><span>Task ' + (r.idx + 1) + ' of ' + r.tasks.length + '</span><span>Morning ends <b id="ends">' + esc(clockStr(endTs)) + '</b></span></div>' +
+      '<h1 class="now-name">' + esc(task.name) + '</h1>' +
+      '<div class="ringwrap"><svg class="ring" viewBox="0 0 200 200" aria-hidden="true"><circle class="track" cx="100" cy="100" r="88"/><circle id="arc" class="arc' + (rem <= warnAt(task) ? ' warn' : '') + '" cx="100" cy="100" r="88" style="stroke-dashoffset:' + off.toFixed(1) + '"/></svg>' +
+      '<div class="ringtext"><span id="remain" class="count">' + fmt(rem) + '</span></div></div>' +
+      '<button class="btn big" id="done" type="button">Done<span class="next">' + (nextName ? 'Next: ' + esc(nextName) : 'Last one') + '</span></button>' +
+      taskList(items) +
+      (r.practice ? '<p class="practice">Practice run. Timers move ' + PRACTICE_SCALE + ' times faster and nothing is recorded.</p><button class="link" id="cancel" type="button">Stop practice</button>' : '') +
+      '</section>';
+  }
+
+  function resultHTML(res, reason, tasks, now, practice) {
+    var cls = res === 'green' ? 'green' : res === 'red' ? 'red' : 'off';
+    var head = res === 'green' ? 'On time' : res === 'red' ? 'Missed today' : 'Day off';
+    var sub = res === 'green' ? 'Green square for today.' : res === 'red' ? (reason || '') : 'No square at stake today.';
+    if (practice) sub = (res === 'green' ? 'You would have earned a green square.' : reason) + ' Practice only, nothing was recorded.';
+    return '<section class="hero"><div class="bigsq ' + cls + '" aria-hidden="true"></div><h1 class="headline">' + head + '</h1><p class="sub">' + esc(sub) + '</p>' +
+      (practice ? '<button class="btn" id="backPractice" type="button">Back to today</button>' : '<p class="sub">Next alarm: ' + esc(nextAlarm(now)) + '</p>') +
+      '</section>' + (tasks && tasks.length ? resultTasks(tasks) : '');
+  }
+
+  function todayHTML(now, ph) {
+    if (ph === 'running') return runHTML(now);
+    var n = S.tasks.length, tot = totalMs(S.tasks), a = alarmAt(S, now).getTime();
+    var h = '';
+    if (ph === 'practiceDone') {
+      var sm = S.run.summary;
+      return resultHTML(sm.ok ? 'green' : 'red', sm.reason, sm.tasks, now, true);
+    }
+    if (ph === 'done' || ph === 'missed') {
+      var e = S.history[dkey(now)] || { result: 'red', reason: 'No run.' };
+      h += resultHTML(e.result, e.reason, e.tasks, now, false);
+    } else if (ph === 'before') {
+      h += '<section class="hero"><p class="eyebrow">Alarm today</p><p class="clock">' + clockParts(a) + '</p><p class="sub" id="until"></p>' +
+        '<p class="sub">' + n + ' timers, ' + (tot / 60000) + ' min. Morning ends ' + esc(clockStr(a + tot)) + '.</p>' +
+        '<div class="row"><button class="btn ghost" id="practice" type="button">Practice run</button><button class="link" id="dayoff" type="button">Take today off</button></div></section>';
+    } else if (ph === 'ready') {
+      h += '<section class="hero"><p class="eyebrow">Alarm time</p><h1 class="headline">Time to start</h1><p class="sub" id="since"></p>' +
+        '<button class="btn big" id="start" type="button">I’m up. Start timers<span class="next">First: ' + esc(S.tasks[0].name.trim() || 'Task 1') + ', ' + S.tasks[0].min + ' min</span></button>' +
+        '<p class="late" id="late" hidden>More than 5 minutes past the alarm. Today will count as red, but run the routine anyway.</p>' +
+        '<button class="link" id="dayoff" type="button">Take today off</button></section>';
+    } else {
+      var firstDay = S.days.indexOf(now.getDay()) !== -1 && dkey(now) < S.startedOn;
+      h += '<section class="hero"><p class="eyebrow">Today</p><h1 class="headline">' + (firstDay ? 'Starts tomorrow' : 'No alarm today') + '</h1><p class="sub">Next alarm: ' + esc(nextAlarm(now)) + '</p>' +
+        '<div class="row"><button class="btn ghost" id="practice" type="button">Practice run</button></div></section>';
+    }
+    return h + squaresHTML(now);
+  }
+
+  function editHTML() {
+    var n = S.tasks.length;
+    var rows = S.tasks.map(function (t, i) {
+      return '<li class="trow" data-id="' + t.id + '">' +
+        '<input class="tn" type="text" id="tn-' + t.id + '" value="' + esc(t.name) + '" placeholder="Task name" maxlength="60" aria-label="Task ' + (i + 1) + ' name">' +
+        '<label class="mins"><input class="tm" type="number" id="tm-' + t.id + '" value="' + t.min + '" min="1" max="180" inputmode="numeric" aria-label="Minutes for task ' + (i + 1) + '"><span>min</span></label>' +
+        '<div class="tb"><button type="button" data-act="up" aria-label="Move up"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+        '<button type="button" data-act="down" aria-label="Move down"' + (i === n - 1 ? ' disabled' : '') + '>↓</button>' +
+        '<button type="button" data-act="del" aria-label="Remove task"' + (n === 1 ? ' disabled' : '') + '>✕</button></div></li>';
+    }).join('');
+    var chips = DAYNAMES.map(function (d, i) {
+      return '<button type="button" class="chip" data-act="day" data-d="' + i + '" aria-pressed="' + (S.days.indexOf(i) !== -1) + '">' + d + '</button>';
+    }).join('');
+    return '<section class="edit">' +
+      '<p class="notice" id="exnote"' + (S.customized ? ' hidden' : '') + '>This is an example routine. Change the steps and times to match your morning.</p>' +
+      '<div class="field"><label for="alarm">Alarm time</label><input id="alarm" type="time" value="' + esc(S.alarm) + '">' +
+      '<p class="hint">Set the same time in Clock. Timers start when you tap Start. Tapping more than 5 minutes after this time counts as a late start and makes the day red.</p></div>' +
+      '<div class="field"><span class="lbl">Alarm days</span><div class="chips">' + chips + '</div></div>' +
+      '<div class="field"><span class="lbl">Routine</span><ul class="tasks" id="tasks">' + rows + '</ul>' +
+      '<button class="btn ghost" id="addTask" type="button" style="flex:none;width:100%">Add a task</button>' +
+      '<p class="hint" id="sum"></p>' +
+      '<p class="hint">Each timer starts when the one before it ends. If a timer runs out, that task turns red and the next one starts on its own.</p></div>' +
+      '<details class="how"><summary>Connect it to a Shortcut (iPhone)</summary><ol>' +
+      '<li>In Clock, set a normal alarm at your alarm time. It does the loud waking.</li>' +
+      '<li>In Shortcuts, open Automation, tap +, choose Alarm, pick that alarm, and select Is Stopped.</li>' +
+      '<li>Turn on Run Immediately, add the action Open URLs, and paste the link to this page.</li>' +
+      '<li>Now stopping the alarm opens this page with the Start button ready.</li></ol>' +
+      '<p class="hint" style="margin-bottom:12px">The bottom of the page says where your routine and squares are saved.</p></details>' +
+      '<label class="check" for="sound"><input type="checkbox" id="sound"' + (S.sound ? ' checked' : '') + '><span>Play a chime when a timer starts or runs out</span></label>' +
+      '<button class="btn ghost danger" id="erase" type="button">' + (eraseArmed ? 'Tap again to erase everything' : 'Erase all squares and settings') + '</button>' +
+      '</section>';
+  }
+
+  function keyFor(now) {
+    return view + '|' + phase(now) + '|' + (S.run ? S.run.idx + (S.run.finished ? 'f' : '') : '-') + '|' + (S.history[dkey(now)] ? 1 : 0) + '|' + (eraseArmed ? 1 : 0);
+  }
+
+  function render(now) {
+    now = now || new Date();
+    var ph = phase(now);
+    lastKey = keyFor(now);
+    var nav = ph === 'running' ? '<span></span>' : '<button class="link" id="nav" type="button">' + (view === 'edit' ? 'Back to today' : 'Edit routine') + '</button>';
+    app.innerHTML = '<header class="top"><span class="brand">Morning Squares</span>' + nav + '</header>' +
+      (view === 'edit' ? editHTML() : todayHTML(now, ph)) +
+      '<p class="hint" id="sync">' + esc(syncText()) + '</p>';
+    if (view === 'edit') updateSummary();
+    updateLive(now);
+  }
+
+  function updateSummary() {
+    var tot = totalMs(S.tasks), a = alarmAt(S, new Date()).getTime();
+    setText('sum', S.tasks.length + ' tasks · ' + (tot / 60000) + ' min · morning ends ' + clockStr(a + tot));
+  }
+
+  function updateLive(now) {
+    if (view !== 'today') return;
+    var ph = phase(now), t = now.getTime();
+    if (ph === 'running') {
+      var r = S.run, task = r.tasks[r.idx];
+      var rem = Math.max(0, r.taskStart + task.ms - t);
+      setText('remain', fmt(rem));
+      var arc = document.getElementById('arc');
+      if (arc) {
+        arc.style.strokeDashoffset = (C * (1 - rem / task.ms)).toFixed(1);
+        arc.classList.toggle('warn', rem <= warnAt(task));
+      }
+      setText('ends', clockStr(r.taskStart + r.tasks.slice(r.idx).reduce(function (a, x) { return a + x.ms; }, 0)));
+      if (rem <= warnAt(task) && r.warnIdx !== r.idx) { r.warnIdx = r.idx; cue('warn'); save(); }
+    } else if (ph === 'before') {
+      setText('until', 'Starts in ' + human(alarmAt(S, now).getTime() - t));
+    } else if (ph === 'ready') {
+      var since = t - alarmAt(S, now).getTime();
+      setText('since', since < 60000 ? 'The alarm time is now.' : 'The alarm time was ' + Math.floor(since / 60000) + ' min ago.');
+      var late = document.getElementById('late');
+      if (late) late.hidden = since <= GRACE;
+    }
+  }
+
+  function tick() {
+    var now = new Date(), ch = false;
+    if (synced) {
+      if (settle(now.getTime())) ch = true;
+      if (closeOut(now)) ch = true;
+    }
+    if (ch) save();
+    if (keyFor(now) !== lastKey) render(now); else updateLive(now);
+  }
+
+  /* ---------- events ---------- */
+  function taskById(row) {
+    var id = row && row.dataset.id;
+    for (var i = 0; i < S.tasks.length; i++) if (S.tasks[i].id === id) return i;
+    return -1;
+  }
+
+  app.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    var id = b.id, act = b.dataset.act;
+    if (id === 'nav') {
+      if (view === 'edit') {
+        if (S.tasks.length && !Object.keys(S.history).length && !S.run) S.startedOn = computeStart(S, new Date());
+        save();
+      }
+      view = view === 'edit' ? 'today' : 'edit'; eraseArmed = false; render(); window.scrollTo(0, 0); return;
+    }
+    if (id === 'start') return startRun(false);
+    if (id === 'practice') return startRun(true);
+    if (id === 'done') return doneTask();
+    if (id === 'cancel' || id === 'backPractice') { unwake(); S.run = null; save(); render(); return; }
+    if (id === 'dayoff') { S.history[dkey(new Date())] = { result: 'off' }; save(); render(); return; }
+    if (id === 'addTask') { S.tasks.push({ id: uid(), name: '', min: 5 }); S.customized = true; save(); render(); var ins = app.querySelectorAll('.tn'); if (ins.length) ins[ins.length - 1].focus(); return; }
+    if (id === 'erase') {
+      if (!eraseArmed) { eraseArmed = true; render(); return; }
+      eraseArmed = false; S = fresh(); save(); view = 'today'; render(); return;
+    }
+    if (act === 'day') {
+      var d = Number(b.dataset.d), i = S.days.indexOf(d);
+      if (i === -1) S.days.push(d); else S.days.splice(i, 1);
+      S.days.sort(); S.customized = true; save();
+      b.setAttribute('aria-pressed', String(S.days.indexOf(d) !== -1));
+      return;
+    }
+    if (act === 'up' || act === 'down' || act === 'del') {
+      var ix = taskById(b.closest('.trow'));
+      if (ix === -1) return;
+      if (act === 'del' && S.tasks.length > 1) S.tasks.splice(ix, 1);
+      else if (act === 'up' && ix > 0) { var t1 = S.tasks[ix]; S.tasks[ix] = S.tasks[ix - 1]; S.tasks[ix - 1] = t1; }
+      else if (act === 'down' && ix < S.tasks.length - 1) { var t2 = S.tasks[ix]; S.tasks[ix] = S.tasks[ix + 1]; S.tasks[ix + 1] = t2; }
+      S.customized = true; save(); render();
+    }
+  });
+
+  app.addEventListener('input', function (e) {
+    var t = e.target;
+    if (!t.classList) return;
+    var ix = taskById(t.closest('.trow'));
+    if (t.classList.contains('tn') && ix !== -1) {
+      S.tasks[ix].name = t.value; S.customized = true; save();
+      var n1 = document.getElementById('exnote'); if (n1) n1.hidden = true;
+    } else if (t.classList.contains('tm') && ix !== -1) {
+      var v = parseInt(t.value, 10);
+      if (v >= 1 && v <= 180) { S.tasks[ix].min = v; S.customized = true; save(); updateSummary(); }
+      var n2 = document.getElementById('exnote'); if (n2) n2.hidden = true;
+    }
+  });
+
+  app.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.id === 'alarm' && /^\d\d:\d\d$/.test(t.value)) {
+      S.alarm = t.value; S.customized = true; save(); updateSummary();
+      var n3 = document.getElementById('exnote'); if (n3) n3.hidden = true;
+    } else if (t.id === 'sound') {
+      S.sound = t.checked; save();
+    } else if (t.classList && t.classList.contains('tm')) {
+      var ix = taskById(t.closest('.trow'));
+      if (ix !== -1) t.value = S.tasks[ix].min;
+    }
+  });
+
+  /* ---------- boot ---------- */
+  render();
+  setInterval(tick, 250);
+  initSync();
+})();
+</script>
+</body>
+</html>
